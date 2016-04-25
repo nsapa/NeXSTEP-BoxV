@@ -1,0 +1,20 @@
+DOCICONFILES = ();
+LOCALIZABLE_FILES = {
+    Info.rtf;
+    Localizable.strings;
+};
+LANGUAGE = English;
+PROJECTVERSION = 1.1;
+INSTALLDIR = /usr/Devices;
+PROJECTTYPE = Bundle;
+PROJECTNAME = BoxV;
+GENERATEMAIN = YES;
+DOCEXTENSIONS = ();
+FILESTABLE = {
+    OTHER_SOURCES = (Makefile, Makefile.postamble, Makefile.preamble);
+    OTHER_RESOURCES = (Default.table, Info.rtf, Display.modes);
+    STRINGS_FILES = (Localizable.strings);
+    TOOLS = (BoxV_reloc.tproj);
+    SUBPROJECTS = ();
+};
+BUNDLE_EXTENSION = config;

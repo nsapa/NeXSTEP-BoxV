@@ -1,0 +1,15 @@
+DOCICONFILES = ();
+FILESTABLE = {
+    OTHER_SOURCES = (Makefile.preamble, Makefile, Makefile.postamble, Load_Commands.sect, Makefile.driver_preamble);
+    H_FILES = (BoxVDriver.h, BoxVModes.h, boxv.h, boxv_io.h);
+    OTHER_LINKED = ();
+    CLASSES = (BoxVDriver.m, BoxVSetMode.m);
+    C_FILES = (BoxVModes.c, boxv.c);
+};
+LOCALIZABLE_FILES = {
+};
+PROJECTVERSION = 1.1;
+PROJECTTYPE = Tool;
+PROJECTNAME = BoxV_reloc;
+GENERATEMAIN = YES;
+LANGUAGE = English;

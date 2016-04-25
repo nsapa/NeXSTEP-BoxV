@@ -1,0 +1,12 @@
+"Title" = "VirtualBox SVGA Adapter";
+"Family" = "Display";
+"Version" = "3.30";
+"Location" = "";
+"Instance" = "0";
+"Driver Name" = "BoxV";
+"DMA Channels" = "";
+"IRQ Levels" = "";
+"I/O Ports" = "0x3b4-0x3b5 0x3b8-0x3bb 0x3c0-0x3cf 0x3d4-0x3dc";
+"Memory Maps" = "0xe0000000-0xefffffff 0xa0000-0xbffff 0xc0000-0xcffff";
+"VGA Memory Maps" = "0xa0000-0xbffff 0xc0000-0xcffff";
+"Display Mode" = "Height: 768 Width: 1024 Refresh: 60Hz ColorSpace: RGB:555/16";
