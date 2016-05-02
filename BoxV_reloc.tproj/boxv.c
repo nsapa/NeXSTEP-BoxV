@@ -1,3 +1,27 @@
+/*****************************************************************************
+
+Copyright (c) 2012  Michal Necasek
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+*****************************************************************************/
+
 #include "boxv.h"
 #include "boxv_io.h"
 
@@ -109,7 +133,7 @@ typedef struct {
     v_byte          seq[5];         /* Sequencer registers. */
     v_byte          crtc[25];       /* CRTC registers. */
     v_byte          gctl[9];        /* Graphics controller registers. */
-    v_byte          atr[21];        /* Attribute registers. */        
+    v_byte          atr[21];        /* Attribute registers. */
 } v_vgaregs;
 
 /* A structure fully describing a graphics or text mode. */
@@ -119,7 +143,7 @@ typedef struct {
     int             yres;           /* Vertical (Y) resolution. */
     int             bpp;            /* Bits per pixel. */
     int             ext;            /* Non-zero for extended modes. */
-    v_vgaregs      *vgaregs;       /* Contents of VGA registers. */ 
+    v_vgaregs      *vgaregs;       /* Contents of VGA registers. */
 } v_mode;
 
 v_vgaregs       vga_regs_ext = {
@@ -182,7 +206,7 @@ v_mode          *mode_list[] = {
     NULL
 };
 
-/* Write a single value to an indexed register at a specified 
+/* Write a single value to an indexed register at a specified
  * index. Suitable for the CRTC or graphics controller.
  */
 static void vid_wridx( void *cx, int idx_reg, int idx, v_byte data )
@@ -201,7 +225,7 @@ static void vid_wridx_s( void *cx, int idx_reg, int count, v_byte *data )
         vid_wridx( cx, idx_reg, idx, data[idx] );   /* Write index/data. */
 }
 
-/* Program a sequence of bytes into the attribute controller, starting 
+/* Program a sequence of bytes into the attribute controller, starting
  * at index 0. Note: This function may not be interrupted by code which
  * also accesses the attribute controller.
  */
@@ -251,7 +275,62 @@ void BOXV_mode_enumerate( void *cx, int (cb)( void *cx, BOXV_mode_t *mode ) )
     }
 }
 
-/* Set the requested mode (text or graphics). 
+/* Set an extended non-VGA mode with given parameters. 8bpp and higher only.
+ * Returns non-zero value on failure.
+ */
+int BOXV_ext_mode_set( void *cx, int xres, int yres, int bpp, int v_xres, int v_yres )
+{
+    /* Do basic parameter validation. */
+    if( v_xres < xres || v_yres < yres )
+        return( -1 );
+
+    /* Put the hardware into a state where the mode can be safely set. */
+    vid_inb( cx, VGA_STAT_ADDR );                   /* Reset flip-flop. */
+    vid_outb( cx, VGA_ATTR_W, 0 );                  /* Disable palette. */
+    vid_wridx( cx, VGA_SEQUENCER, VGA_SR_RESET, VGA_SR_RESET );
+
+    /* Disable the extended display registers. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_ENABLE );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, VBE_DISPI_DISABLED );
+
+    /* Program the extended non-VGA registers. */
+
+    /* Set X resoultion. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_XRES );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, xres );
+    /* Set Y resoultion. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_YRES );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, yres );
+    /* Set bits per pixel. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_BPP );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, bpp );
+    /* Set the virtual resolution. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_VIRT_WIDTH );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, v_xres );
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_VIRT_HEIGHT );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, v_yres );
+    /* Reset the current bank. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_BANK );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, 0 );
+    /* Set the X and Y display offset to 0. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_X_OFFSET );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, 0 );
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_Y_OFFSET );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, 0 );
+    /* Enable the extended display registers. */
+    vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_ENABLE );
+    vid_outw( cx, VBE_DISPI_IOPORT_DATA, VBE_DISPI_ENABLED | VBE_DISPI_8BIT_DAC );
+
+    /* Re-enable the sequencer. */
+    vid_wridx( cx, VGA_SEQUENCER, VGA_SR_RESET, VGA_SR0_NORESET );
+
+    /* Re-enable palette. */
+    vid_outb( cx, VGA_ATTR_W, 0x20 );
+
+    return( 0 );
+}
+
+/* Set the requested mode (text or graphics).
  * Returns non-zero value on failure.
  */
 int BOXV_mode_set( void *cx, int mode_no )
@@ -346,14 +425,18 @@ int BOXV_dac_set( void *cx, unsigned start, unsigned count, void *pal )
     return( 0 );
 }
 
-/* Detect the presence of a supported adapter. Returns zero if not found.
+/* Detect the presence of a supported adapter and amount of installed
+ * video memory. Returns zero if not found.
  */
-int BOXV_detect( void *cx )
+int BOXV_detect( void *cx, unsigned long *vram_size )
 {
     v_word      boxv_id;
 
     vid_outw( cx, VBE_DISPI_IOPORT_INDEX, VBE_DISPI_INDEX_ID );
     boxv_id = vid_inw( cx, VBE_DISPI_IOPORT_DATA );
+    if( vram_size ) {
+        *vram_size = vid_ind( cx, VBE_DISPI_IOPORT_DATA );
+    }
     if( boxv_id >= VBE_DISPI_ID0 && boxv_id <= VBE_DISPI_ID4 )
         return( boxv_id );
     else

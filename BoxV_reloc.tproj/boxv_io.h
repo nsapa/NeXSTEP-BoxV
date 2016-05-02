@@ -26,3 +26,8 @@ static unsigned vid_inw( void *cx, unsigned port )
 {
     return( inw( port ) );
 }
+
+static unsigned vid_ind( void *cx, unsigned port )
+{
+    return( inl( port ) );
+}
